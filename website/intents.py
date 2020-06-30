@@ -38,10 +38,6 @@ def find_device(idx):
             return device
     return None
 
-#TODO using https://developers.google.com/assistant/smarthome/develop/process-intents#query-request
-def sync(inputs):
-    print("sync", file=sys.stderr)
-    return {"devices": devices}
 
 def switch_light(device, on):
     action = "ON" if on else "OFF"
@@ -57,7 +53,7 @@ def switch_state(devices):
     def on_rcv(client, userdata, message):
         st = message.topic.split('/')
         if st[1] == "stat" and st[2] == "POWER" and st[0] in q:
-            q[st[0]].put(message.payload)
+            q[st[0]].put(message.payload.decode("utf-8"))
     client.on_message = on_rcv
     for device in devices:
         client.subscribe(device + "/stat/POWER")
@@ -71,6 +67,11 @@ def switch_state(devices):
             rets[device] = "OFFLINE"
     client.loop_stop()
     return rets
+
+#using https://developers.google.com/assistant/smarthome/develop/process-intents
+def sync(inputs):
+    print("sync", file=sys.stderr)
+    return {"devices": devices}
 
 def execute(inputs):
     print("execute", file=sys.stderr)
@@ -115,7 +116,8 @@ def query(inputs):
         else:
             responses[dev_desc["id"]] = {"online": False, "status" : "ERROR"}
     for device, result in switch_state(devices_for_search).items():
-        responses[device] = {"online": result != "OFFLINE", "on": result == "on"}
+        print(device, result, file=sys.stderr)
+        responses[device] = {"online": result != "OFFLINE", "on": result == "ON"}
     payload =  {"devices" : responses}
     print(payload, file=sys.stderr)
     return payload
