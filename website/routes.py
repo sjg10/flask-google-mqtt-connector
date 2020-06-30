@@ -1,5 +1,6 @@
 import time
 import sys
+import os
 from flask import Blueprint, request, session, url_for
 from flask import render_template, redirect, jsonify
 from werkzeug.security import gen_salt
@@ -7,7 +8,7 @@ from authlib.integrations.flask_oauth2 import current_token
 from authlib.oauth2 import OAuth2Error
 from .models import db, User, OAuth2Client
 from .oauth2 import authorization, require_oauth
-
+from .intents import api_delegate
 
 bp = Blueprint(__name__, 'home')
 
@@ -124,17 +125,43 @@ def issue_token():
 def revoke_token():
     return authorization.create_endpoint_response('revocation')
 
+import paho.mqtt.client as mqtt
+import queue
+@bp.route('/query', methods=['GET'])
+def query():
+    client = mqtt.Client()
+    client.username_pw_set(os.environ["MQTT_USERNAME"], os.environ["MQTT_PASSWORD"])
+    client.connect(os.environ["MQTT_ADDRESS"], int(os.environ["MQTT_PORT"]))
+    received = ""
+    q= queue.Queue()
+    def on_rcv(client, userdata, message):
+        if message.topic == "tasmota1/stat/POWERs":
+            q.put(message.payload)
+    client.on_message = on_rcv
+    client.subscribe("tasmota1/stat/POWER")
+    client.publish("tasmota1/cmnd/Power","")
+    client.loop_start()
+    try:
+        retval = q.get(timeout = 1.0)
+    except queue.Empty:
+        retval = "OFFLINE"
+    client.loop_stop()
+    return retval
 
-@bp.errorhandler(500)
-def internal_error(error):
-    print(error)
-    return "500 error"
+
 
 
 @bp.route('/api', methods = ['POST'])
-#@require_oauth('intents')
+@require_oauth('intents')
 def api(): 
-    #TODO: pad out the API
-    #user = current_token.user
+    user = current_token.user
+#    user = User.query.filter_by(username="samuel").first()
     print(request.json, file=sys.stderr)
-    return "Hello post"
+    payload = api_delegate(request.json)
+    if payload:
+        payload["agentUserId"] = str(user.id)
+        response = {"payload": payload}
+        if "requestId" in request.json:
+            response["requestId"] = request.json["requestId"]
+        return jsonify(response)
+    return "Bad request", 400
