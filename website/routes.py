@@ -32,7 +32,7 @@ def revoke_token():
 @require_oauth('intents')
 def api(): 
     user = current_token.user
-    print(request.json, file=sys.stderr)
+    print("API REQ:", request.json, flush = True)
     payload = api_delegate(request.json)
     if payload:
         payload["agentUserId"] = str(user.id)
