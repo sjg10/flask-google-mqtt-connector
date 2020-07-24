@@ -10,9 +10,6 @@ from .routes import bp
 def create_app(config=None):
     app = Flask(__name__)
 
-    # load default configuration
-    app.config.from_object('website.settings')
-
     # load environment configuration
     if 'WEBSITE_CONF' in os.environ:
         app.config.from_envvar('WEBSITE_CONF')
@@ -38,16 +35,19 @@ def add_default_client(app):
     form["scope"] = "intents"
     form["token_endpoint_auth_method"] = "client_secret_post"
     with app.app_context():
+        # Add/update the default user
         user = User.query.filter_by(username = form["username"]).first()
-        if not user:
-            print("Added default user ", form["username"])
-            user = User(username=form["username"])
+        userexists = (user != None)
+        user = User(username=form["username"])
+        if not userexists:
             db.session.add(user)
-            db.session.commit()
+
+        # Add/update the default client to access that user
         client_id = os.environ["GOOGLE_CLIENT_ID"]
+        client = OAuth2Client.query.filter_by(client_id = client_id).first()
+        clientexists = (client != None)
+
         client_id_issued_at = int(time.time())
-        # TODO: try not to add if already exists
-        # TODO: work out if we can make the docker-compose persist the db
         client = OAuth2Client(
             client_id=client_id,
             client_id_issued_at=client_id_issued_at,
@@ -70,7 +70,10 @@ def add_default_client(app):
         else:
             client.client_secret = os.environ["GOOGLE_CLIENT_SECRET"]
 
-        db.session.add(client)
+        if not clientexists:
+            db.session.add(client)
+
+        # Commit to DB
         db.session.commit()
 
 
@@ -79,8 +82,8 @@ def setup_app(app):
     @app.before_first_request
     def create_tables():
         db.create_all()
+        add_default_client(app)
 
     db.init_app(app)
     config_oauth(app)
     app.register_blueprint(bp, url_prefix='')
-    add_default_client(app) # TODO: work out why this seems to add two!
