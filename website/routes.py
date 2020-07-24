@@ -17,8 +17,6 @@ def authorize():
     resp = authorization.create_authorization_response(grant_user=user)
     return resp
 
-
-
 @bp.route('/oauth/token', methods=['POST'])
 def issue_token():
     return authorization.create_token_response()

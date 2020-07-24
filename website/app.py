@@ -2,7 +2,7 @@ import os
 import time
 from flask import Flask
 from werkzeug.security import gen_salt
-from .models import db, User, OAuth2Client
+from .models import db, User, OAuth2Client, default_devices
 from .oauth2 import config_oauth
 from .routes import bp
 
@@ -83,6 +83,7 @@ def setup_app(app):
     def create_tables():
         db.create_all()
         add_default_client(app)
+        default_devices()
 
     db.init_app(app)
     config_oauth(app)

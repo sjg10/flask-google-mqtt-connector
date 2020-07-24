@@ -3,47 +3,8 @@ import os
 import queue
 import paho.mqtt.publish as publish
 import paho.mqtt.client as mqtt
-
-devices = [
-        {"id" : "tasmota1", 
-        "type" : "action.devices.types.LIGHT",
-        "traits" : ["action.devices.traits.OnOff"],
-        "name" : {"name" : "stair lights", "nicknames" : ["stair light", "stairs light", "stairs lights"]},
-        "willReportState": False, # TODO better as true with https://developers.google.com/assistant/smarthome/develop/report-state
-        "roomHint": "downstairs"},
-        {"id" : "tasmota2", 
-        "type" : "action.devices.types.LIGHT",
-        "traits" : ["action.devices.traits.OnOff"],
-        "name" : {"name" : "table light", "nicknames" : ["table lights"]},
-        "willReportState": False, # TODO better as true with https://developers.google.com/assistant/smarthome/develop/report-state
-        "roomHint": "downstairs"},
-        {"id" : "tasmota3", 
-        "type" : "action.devices.types.LIGHT",
-        "traits" : ["action.devices.traits.OnOff"],
-        "name" : {"name" : "sofa light", "nicknames" : ["sofa lights", "corner light", "corner lights"]},
-        "willReportState": False, # TODO better as true with https://developers.google.com/assistant/smarthome/develop/report-state
-        "roomHint": "downstairs"},
-        {"id" : "tasmota4", 
-        "type" : "action.devices.types.LIGHT",
-        "traits" : ["action.devices.traits.OnOff"],
-        "name" : {"name" : "door light", "nicknames" : ["door lights"]},
-        "willReportState": False, # TODO better as true with https://developers.google.com/assistant/smarthome/develop/report-state
-        "roomHint": "downstairs"}
-        ]
-
-#TODO: replace the use of this with a database Model
-def find_device(idx):
-    for device in devices:
-        if device["id"] == idx:
-            return device
-    return None
-
-
-def switch_light(device, on):
-    action = "ON" if on else "OFF"
-    print("Switching", device, action)
-    #TODO: generalise from tasmota
-    publish.single(topic=device + "/cmnd/Power", payload=action, hostname=os.environ["MQTT_ADDRESS"], port=int(os.environ["MQTT_PORT"]), auth={'username': os.environ["MQTT_USERNAME"], 'password':os.environ["MQTT_PASSWORD"]})
+from .actions import onoff
+from .models import db, Device
 
 def switch_state(devices):
     client = mqtt.Client()
@@ -71,7 +32,7 @@ def switch_state(devices):
 #using https://developers.google.com/assistant/smarthome/develop/process-intents
 def sync(inputs):
     print("sync", file=sys.stderr)
-    return {"devices": devices}
+    return {"devices": [d.syncdict() for d in db.session.query(Device).all()]}
 
 def execute(inputs):
     print("execute", file=sys.stderr)
@@ -81,12 +42,13 @@ def execute(inputs):
     for command in inputs["payload"]["commands"]:
         for execution in command["execution"]:
             for device in command["devices"]:
-                dev_desc = find_device(device["id"])
-                if dev_desc:
+                dev_obj = db.session.query(Device).filter_by(device_id=device["id"]).first()
+                if dev_obj:
+                    dev_desc=dev_obj.syncdict()
                     #customData not supported yet
                     if execution["command"] == "action.devices.commands.OnOff":
                         if "on" in execution["params"]:
-                            switch_light(dev_desc["id"], execution["params"]["on"])
+                            onoff.execute(dev_desc, execution["params"])
                             success.append(dev_desc["id"])
                         else:
                             errors.append(device["id"])
@@ -110,13 +72,13 @@ def query(inputs):
     responses = {}
     devices_for_search = []
     for device in devices:
-        dev_desc = find_device(device["id"])
-        if dev_desc:
-            devices_for_search.append(dev_desc["id"])
+        dev_obj = db.session.query(Device).filter_by(device_id=device["id"]).first()
+        if dev_obj:
+            devices_for_search.append(dev_obj.device_id)
         else:
-            responses[dev_desc["id"]] = {"online": False, "status" : "ERROR"}
+            responses[device["id"]] = {"online": False, "status" : "ERROR"}
     for device, result in switch_state(devices_for_search).items():
-        print(device, result, file=sys.stderr)
+        print(device, result, flush=True)
         responses[device] = {"online": result != "OFFLINE", "on": result == "ON"}
     payload =  {"devices" : responses}
     print(payload, file=sys.stderr)
