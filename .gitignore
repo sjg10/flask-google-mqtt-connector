@@ -1,3 +1,4 @@
 web-variables.env
 *.pyc
 *.sqlite
+**/pwfile

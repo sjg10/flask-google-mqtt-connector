@@ -9,3 +9,10 @@ services:
             - web-variables.env
         volumes:
             - ./website/data:/app/website/data
+    broker:
+        image: eclipse-mosquitto:1.6
+        ports: 
+            - "1883:1883"
+        volumes:
+            - ./mqtt_config:/mosquitto/config:ro
+        restart: always

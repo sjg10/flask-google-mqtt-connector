@@ -1,7 +1,7 @@
 # Google Actions To Home MQTT Connector
 
 ## Description
-If you are running a home MQTT server (possibly with Tasmota devices, but this can be adapted), and having gone down the route of full stack 3rd party solutions (such as TP-Link, Alexa, or even the DIY HomeAssistant or NodeRed), you might want to connect Google Home and its voice capabilities to control your MQTT devices. Then this is what you need.
+If you are running a home MQTT server (possibly with Tasmota devices, but this can be adapted), and having gone down the route of full stack 3rd party solutions (such as TP-Link, Alexa, or even the DIY HomeAssistant or NodeRed), you might want to connect Google Home and its voice capabilities to control your MQTT devices. Then this is what you need. It also includes an optinal MQTT server.
 
 ## Background and License
 Based off of authlib's example Oauth server example, and so inherits a BSD 3-clause license, is free for you to reuse and edit, but no guarantee is provided and any further work must hold the same license. (See LICENSE for full details).
@@ -12,7 +12,6 @@ Based off of authlib's example Oauth server example, and so inherits a BSD 3-cla
 
  - Docker compose
  - A local SSL secured webserver
- - An MQTT server you want to control
 
 ## Setup 
 ### Home Server Setup
@@ -47,6 +46,16 @@ Download the repo and copy web-variables.env.eg to web-variables.env and fill in
 |MQTT_PORT|The port of your local mqtt server (typically 1883)|
 
 Also edit the devices in `website/devices.py` to be your own. We assume a %prefix%/%topic% format for Tasmota MQTT (https://tasmota.github.io/docs/MQTT/), but this can be modified in `intents.py`
+
+### MQTT Setup
+
+If you already have an MQTT server, simply remove the broker service from the docker-compose file.
+Otherwise, if you wish to use the provided mqtt server:
+
+1.  First install mosquitto locally (e.g. `apt-get install `mosquitto`) This is needed for generating a password file.
+2.  Run `mosquitto_passwd -c mqtt_config/pwfile <MQTT_USERNAME>` and when prompoted enter the MQTT_PASSWORD. This will generate the password file needed for the mqtt broker.
+
+That's it! When the system is run as below an MQTT broker/server will run for you too.
 
 ## Running
 Run a `docker-compose build` followed by `docker-compose up -d` to run and register the service to always restart. Use docker compose to control and monitor the app (https://docs.docker.com/compose/)
