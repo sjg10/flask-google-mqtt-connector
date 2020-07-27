@@ -56,22 +56,22 @@ class OAuth2Token(db.Model, OAuth2TokenMixin):
         return expires_at >= time.time()
 
 class Device(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    device_id = db.Column(db.String(50), unique=True)
-    device_type = db.Column(db.String(50))
-    traits = db.Column(db.String(200))
-    name = db.Column(db.String(50), unique=True)
-    nicknames = db.Column(db.String(200))
-    willReportState = db.Column(db.Integer)
-    roomHint = db.Column(db.String(50))
     array_sep = ':'
+    id = db.Column(db.Integer, primary_key=True)
+    device_id = db.Column(db.String(50), unique=True, default="tasmotaX", nullable=False)
+    device_type = db.Column(db.String(50), nullable=False, default="ActionDeviceType")
+    traits = db.Column(db.String(200), nullable=False, default=array_sep.join(["ActionTraits","seperated","as array"]))
+    name = db.Column(db.String(50), unique=True, nullable=False, default="human name")
+    nicknames = db.Column(db.String(200), nullable=False, default=array_sep.join(["nicknames","seperated","as array"]))
+    willReportState = db.Column(db.Boolean, default=False)
+    roomHint = db.Column(db.String(50),nullable=False, default="human readable room")
     def syncdict(self):
         out = {}
         out["id"] = self.device_id
         out["type"] = self.device_type
         out["traits"] = self.traits.split(self.array_sep)
         out["name"] = {"name": self.name, "nicknames" : self.nicknames.split(self.array_sep)}
-        out["willReportState"] = bool(self.willReportState)
+        out["willReportState"] = self.willReportState
         out["roomHint"] = self.roomHint
         return out
     def update_from_syncdict(self, d):
@@ -80,10 +80,10 @@ class Device(db.Model):
         self.traits = self.array_sep.join(d["traits"])
         self.name = d["name"]["name"]
         self.nicknames = self.array_sep.join( d["name"]["nicknames"])
-        self.willReportState = int(d["willReportState"])
+        self.willReportState = d["willReportState"]
         self.roomHint = d["roomHint"]
 
-
+#Example devices loaded in at boot
 devices = [
         {"id" : "tasmota1", 
         "type" : "action.devices.types.LIGHT",

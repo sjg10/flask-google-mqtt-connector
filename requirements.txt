@@ -2,3 +2,6 @@ Flask
 Flask-SQLAlchemy
 Authlib==0.14.3
 paho-mqtt
+Flask-BasicAuth
+wtforms
+WTForms-Alchemy

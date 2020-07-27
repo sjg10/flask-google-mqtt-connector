@@ -44,8 +44,9 @@ Download the repo and copy web-variables.env.eg to web-variables.env and fill in
 |MQTT_PASSWORD|The password for your local mqtt server|
 |MQTT_ADDRESS|The address of your local mqtt server. Note even if this is the same machine use the absolute IP not localhost, as docker point localhost inside itself, not to the host machine|
 |MQTT_PORT|The port of your local mqtt server (typically 1883)|
+|ADMIN_USERNAME|A username for a new account to edit devices|
+|ADMIN_PASSWORD|A password for a new account to edit devices|
 
-Also edit the devices in `website/devices.py` to be your own. We assume a %prefix%/%topic% format for Tasmota MQTT (https://tasmota.github.io/docs/MQTT/), but this can be modified in `intents.py`
 
 ### MQTT Setup
 
@@ -59,3 +60,9 @@ That's it! When the system is run as below an MQTT broker/server will run for yo
 
 ## Running
 Run a `docker-compose build` followed by `docker-compose up -d` to run and register the service to always restart. Use docker compose to control and monitor the app (https://docs.docker.com/compose/)
+
+## Device Configuration
+
+To configure the devices after starting the service navigate to `/admin` in your browser and edit the database there. 
+
+Edits will persist. Delete `data/db.sqlite` and run `docker-compose restart` to reset the device list.

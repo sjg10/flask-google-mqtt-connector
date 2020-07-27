@@ -4,8 +4,7 @@ from flask import Flask
 from werkzeug.security import gen_salt
 from .models import db, User, OAuth2Client, default_devices
 from .oauth2 import config_oauth
-from .routes import bp
-
+from .routes import bp, basic_auth
 
 def create_app(config=None):
     app = Flask(__name__)
@@ -21,6 +20,9 @@ def create_app(config=None):
         elif config.endswith('.py'):
             app.config.from_pyfile(config)
 
+    app.config['BASIC_AUTH_USERNAME'] = os.environ["ADMIN_USERNAME"]
+    app.config['BASIC_AUTH_PASSWORD'] = os.environ["ADMIN_PASSWORD"]
+    
     setup_app(app)
     return app
 
@@ -86,5 +88,6 @@ def setup_app(app):
         default_devices()
 
     db.init_app(app)
+    basic_auth.init_app(app)
     config_oauth(app)
     app.register_blueprint(bp, url_prefix='')

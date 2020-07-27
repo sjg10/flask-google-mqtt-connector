@@ -3,12 +3,15 @@ import sys
 import os
 from flask import Blueprint, request, session, url_for
 from flask import render_template, redirect, jsonify
+from flask_basicauth import BasicAuth
 from authlib.integrations.flask_oauth2 import current_token
 from authlib.oauth2 import OAuth2Error
 from .models import db, User, OAuth2Client
 from .oauth2 import authorization, require_oauth
 from .intents import api_delegate
+from .admin import admin_render
 
+basic_auth = BasicAuth()
 bp = Blueprint(__name__, 'home')
 
 @bp.route('/oauth/authorize', methods=['GET', 'POST'])
@@ -39,3 +42,9 @@ def api():
             response["requestId"] = request.json["requestId"]
         return jsonify(response)
     return "Bad request", 400
+
+
+@bp.route('/admin', methods = ['POST', 'GET'])
+@basic_auth.required
+def admin_page():
+    return admin_render(request)
