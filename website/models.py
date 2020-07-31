@@ -56,32 +56,35 @@ class OAuth2Token(db.Model, OAuth2TokenMixin):
         return expires_at >= time.time()
 
 class Device(db.Model):
-    array_sep = ':'
     id = db.Column(db.Integer, primary_key=True)
     device_id = db.Column(db.String(50), unique=True, default="tasmotaX", nullable=False)
     device_type = db.Column(db.String(50), nullable=False, default="ActionDeviceType")
-    traits = db.Column(db.String(200), nullable=False, default=array_sep.join(["ActionTraits","seperated","as array"]))
+    traits = db.Column(db.JSON, nullable=False, default=["ActionTraits","seperated","as json_array"])
     name = db.Column(db.String(50), unique=True, nullable=False, default="human name")
-    nicknames = db.Column(db.String(200), nullable=False, default=array_sep.join(["nicknames","seperated","as array"]))
+    nicknames = db.Column(db.JSON, default=["nicknames","seperated","as ", "json_array"])
+    attributes = db.Column(db.JSON, default={"json": ["defining", "custom attributes"]})
     willReportState = db.Column(db.Boolean, default=False)
     roomHint = db.Column(db.String(50),nullable=False, default="human readable room")
     def syncdict(self):
         out = {}
         out["id"] = self.device_id
         out["type"] = self.device_type
-        out["traits"] = self.traits.split(self.array_sep)
-        out["name"] = {"name": self.name, "nicknames" : self.nicknames.split(self.array_sep)}
+        out["traits"] = self.traits
+        out["name"] = {"name": self.name, "nicknames" : self.nicknames}
         out["willReportState"] = self.willReportState
         out["roomHint"] = self.roomHint
+        out["attributes"] = self.attributes
         return out
     def update_from_syncdict(self, d):
         self.device_id = d["id"]
         self.device_type = d["type"]
-        self.traits = self.array_sep.join(d["traits"])
+        self.traits = d["traits"]
         self.name = d["name"]["name"]
-        self.nicknames = self.array_sep.join( d["name"]["nicknames"])
+        self.nicknames = d["name"]["nicknames"]
         self.willReportState = d["willReportState"]
         self.roomHint = d["roomHint"]
+        if "attributes" in d:
+            self.attributes = d["attributes"]
 
 #Example devices loaded in at boot
 devices = [
