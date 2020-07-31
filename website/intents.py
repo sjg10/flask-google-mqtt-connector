@@ -1,38 +1,14 @@
 import sys
 import os
-import queue
-import paho.mqtt.publish as publish
-import paho.mqtt.client as mqtt
-from .actions import onoff
+from .traits import traits
 from .models import db, Device
-
-def switch_state(devices):
-    client = mqtt.Client()
-    client.username_pw_set(os.environ["MQTT_USERNAME"], os.environ["MQTT_PASSWORD"])
-    client.connect(os.environ["MQTT_ADDRESS"], int(os.environ["MQTT_PORT"]))
-    q = {device : queue.Queue() for device in devices}
-    def on_rcv(client, userdata, message):
-        st = message.topic.split('/')
-        if st[1] == "stat" and st[2] == "POWER" and st[0] in q:
-            q[st[0]].put(message.payload.decode("utf-8"))
-    client.on_message = on_rcv
-    for device in devices:
-        client.subscribe(device + "/stat/POWER")
-        client.publish(device + "/cmnd/Power","")
-    client.loop_start()
-    rets = {}
-    for device in devices:
-        try:
-            rets[device] = q[device].get(timeout = 1.0)
-        except queue.Empty:
-            rets[device] = "OFFLINE"
-    client.loop_stop()
-    return rets
 
 #using https://developers.google.com/assistant/smarthome/develop/process-intents
 def sync(inputs):
-    print("sync", file=sys.stderr)
-    return {"devices": [d.syncdict() for d in db.session.query(Device).all()]}
+    print("sync", flush=True)
+    syncstruct = {"devices": [d.syncdict() for d in db.session.query(Device).all()]}
+    print(syncstruct, flush=True)
+    return syncstruct
 
 def execute(inputs):
     print("execute", file=sys.stderr)
@@ -45,14 +21,12 @@ def execute(inputs):
                 dev_obj = db.session.query(Device).filter_by(device_id=device["id"]).first()
                 if dev_obj:
                     dev_desc=dev_obj.syncdict()
-                    #customData not supported yet
-                    if execution["command"] == "action.devices.commands.OnOff":
-                        if "on" in execution["params"]:
-                            onoff.execute(dev_desc, execution["params"])
+                    try:
+                        if traits.execute(execution["command"], dev_desc, execution["params"]): # TODO: return a struct not a status
                             success.append(dev_desc["id"])
                         else:
                             errors.append(device["id"])
-                    else:
+                    except NotImplementedError as e:
                         errors.append(device["id"])
                 else:
                     errors.append(device["id"])
@@ -67,21 +41,37 @@ def execute(inputs):
     return payload
 
 def query(inputs):
-    print("query", file=sys.stderr)
+    print("query", flush=True)
     devices=inputs["payload"]["devices"]
     responses = {}
     devices_for_search = []
     for device in devices:
         dev_obj = db.session.query(Device).filter_by(device_id=device["id"]).first()
         if dev_obj:
-            devices_for_search.append(dev_obj.device_id)
+            devices_for_search.append(dev_obj)
         else:
             responses[device["id"]] = {"online": False, "status" : "ERROR"}
-    for device, result in switch_state(devices_for_search).items():
-        print(device, result, flush=True)
-        responses[device] = {"online": result != "OFFLINE", "on": result == "ON"}
+    dev_by_trait = {}
+    for device in devices_for_search:
+        for trait in device.traits:
+            if trait in dev_by_trait:
+                dev_by_trait[trait].append(device.device_id)
+            else:
+                dev_by_trait[trait] = [device.device_id]
+    for trait, devices in dev_by_trait.items():
+            print("Querying",devices, trait, flush=True)
+            for device, result in traits.query(trait, devices).items():
+                print("Result", device, trait, result, flush=True)
+                if device in responses:
+                    if not device["online"]:  # dont bother with results for offline devices
+                        continue
+                else:
+                    responses[device] = {}
+                responses[device]["online"] = result is not None
+                responses[device]["status"] = "SUCCESS" if result else "OFFLINE"
+                if result is not None: responses[device].update(result)
     payload =  {"devices" : responses}
-    print(payload, file=sys.stderr)
+    print(payload, flush=True)
     return payload
 
 def disconnect(inputs):

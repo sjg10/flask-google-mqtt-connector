@@ -73,7 +73,8 @@ class Device(db.Model):
         out["name"] = {"name": self.name, "nicknames" : self.nicknames}
         out["willReportState"] = self.willReportState
         out["roomHint"] = self.roomHint
-        out["attributes"] = self.attributes
+        if self.attributes:
+            out["attributes"] = self.attributes
         return out
     def update_from_syncdict(self, d):
         self.device_id = d["id"]
@@ -110,6 +111,12 @@ devices = [
         "type" : "action.devices.types.LIGHT",
         "traits" : ["action.devices.traits.OnOff"],
         "name" : {"name" : "door light", "nicknames" : ["door lights"]},
+        "willReportState": False, # TODO better as true with https://developers.google.com/assistant/smarthome/develop/report-state
+        "roomHint": "downstairs"},
+        {"id" : "blind1", 
+        "type" : "action.devices.types.BLINDS",
+        "traits" : ["action.devices.traits.OpenClose"],
+        "name" : {"name" : "blind", "nicknames" : ["blinds"]},
         "willReportState": False, # TODO better as true with https://developers.google.com/assistant/smarthome/develop/report-state
         "roomHint": "downstairs"}
         ]
