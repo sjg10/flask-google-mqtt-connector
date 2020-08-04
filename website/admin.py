@@ -38,8 +38,7 @@ def commit(request):
             form = DeviceForm(request.form, obj=device)
             form.populate_obj(device)
             if form.validate(): 
-                for key, value in form.data.items():
-                    setattr(device, key, value)
+                device.update(form.data)
                 db.session.commit()
                 return None
             else:
@@ -82,10 +81,10 @@ def admin_render(request):
             if isinstance(Device.get_col_type(col), DBArray):
                 md[col] = "\n".join(content)
         device = DeviceForm(MultiDict(md))
-        device.id = member.id
+        device.keyid = member.keyid
         devicesform.append(device)
     emptyRow = DeviceForm()
-    emptyRow.id = "NEW"
+    emptyRow.keyid = "NEW"
     devicesform.append(emptyRow)
 
     return render_template('admin.html', devicesform = devicesform, columnnames=columns)

@@ -68,31 +68,23 @@ class OAuth2Token(db.Model, OAuth2TokenMixin):
         return expires_at >= time.time()
 
 class Device(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    device_id = db.Column(db.String(50), unique=True, default="tasmotaX", nullable=False)
-    device_type = db.Column(db.String(50), nullable=False, default="ActionDeviceType")
-    traits = db.Column(DBArray, nullable=False, default="ActionTraits\nseperated\nas newlines")
+    keyid = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.String(50), unique=True, default="tasmotaX", nullable=False)
     name = db.Column(db.String(50), unique=True, nullable=False, default="human name")
     nicknames = db.Column(DBArray, nullable=False, default="nicknames\nseperated\nas newlines")
-    willReportState = db.Column(db.Boolean, default=False)
     roomHint = db.Column(db.String(50),nullable=False, default="human readable room")
-    def syncdict(self):
+    manufacturer = db.Column(db.String(50), nullable=False, default="manufacturer")
+    model = db.Column(db.String(50), nullable=False, default="model")
+    def generate_common_sync(self):
         out = {}
-        out["id"] = self.device_id
-        out["type"] = self.device_type
-        out["traits"] = self.traits
+        out["id"] = self.id
         out["name"] = {"name": self.name, "nicknames" : self.nicknames}
-        out["willReportState"] = self.willReportState
         out["roomHint"] = self.roomHint
+        out["deviceInfo"] = {"manufacturer": self.manufacturer, "model": self.model}
         return out
-    def update_from_syncdict(self, d):
-        self.device_id = d["id"]
-        self.device_type = d["type"]
-        self.traits = d["traits"]
-        self.name = d["name"]["name"]
-        self.nicknames = d["name"]["nicknames"]
-        self.willReportState = d["willReportState"]
-        self.roomHint = d["roomHint"]
+    def update(self, d):
+        for item, content in d.items():
+            setattr(self, item, content)
     @classmethod
     def get_col_type(cls, col):
         if hasattr(cls, col):
@@ -100,48 +92,51 @@ class Device(db.Model):
         else:
             return None
         
-
-
-
 #Example devices loaded in at boot
 devices = [
         {"id" : "tasmota1", 
-        "type" : "action.devices.types.LIGHT",
-        "traits" : ["action.devices.traits.OnOff"],
-        "name" : {"name" : "stair lights", "nicknames" : ["stair light", "stairs light", "stairs lights"]},
-        "willReportState": False, # TODO better as true with https://developers.google.com/assistant/smarthome/develop/report-state
-        "roomHint": "downstairs"},
+        "name" : "stair lights",
+        "nicknames" : ["stair light", "stairs light", "stairs lights"],
+        "roomHint": "downstairs",
+        "manufacturer" : "tasmota",
+        "model": "u2s"},
         {"id" : "tasmota2", 
-        "type" : "action.devices.types.LIGHT",
-        "traits" : ["action.devices.traits.OnOff"],
-        "name" : {"name" : "table light", "nicknames" : ["table lights"]},
-        "willReportState": False, # TODO better as true with https://developers.google.com/assistant/smarthome/develop/report-state
-        "roomHint": "downstairs"},
+        "name" : "table light",
+        "nicknames" : ["table lights"],
+        "roomHint": "downstairs",
+        "manufacturer" : "tasmota",
+        "model": "u2s"},
         {"id" : "tasmota3", 
-        "type" : "action.devices.types.LIGHT",
-        "traits" : ["action.devices.traits.OnOff"],
-        "name" : {"name" : "sofa light", "nicknames" : ["sofa lights", "corner light", "corner lights"]},
-        "willReportState": False, # TODO better as true with https://developers.google.com/assistant/smarthome/develop/report-state
-        "roomHint": "downstairs"},
+        "name" : "sofa light",
+        "nicknames" : ["sofa lights", "corner light", "corner lights"],
+        "roomHint": "downstairs",
+        "manufacturer" : "tasmota",
+        "model": "u2s"},
         {"id" : "tasmota4", 
-        "type" : "action.devices.types.LIGHT",
-        "traits" : ["action.devices.traits.OnOff"],
-        "name" : {"name" : "door light", "nicknames" : ["door lights"]},
-        "willReportState": False, # TODO better as true with https://developers.google.com/assistant/smarthome/develop/report-state
-        "roomHint": "downstairs"},
+        "name" : "door light",
+        "nicknames" : ["door lights"],
+        "roomHint": "downstairs",
+        "manufacturer" : "tasmota",
+        "model": "u2s"},
+        {"id" : "tasmota6", 
+        "name" : "cabin light",
+        "nicknames" : ["cabin lights", "cabin lamp"],
+        "roomHint": "cabin",
+        "manufacturer" : "tasmota",
+        "model": "u2s"},
         {"id" : "blind1", 
-        "type" : "action.devices.types.BLINDS",
-        "traits" : ["action.devices.traits.OpenClose"],
-        "name" : {"name" : "blind", "nicknames" : ["blinds"]},
-        "willReportState": False, # TODO better as true with https://developers.google.com/assistant/smarthome/develop/report-state
-        "roomHint": "downstairs"}
+        "name" : "blind",
+        "nicknames" : ["blinds"],
+        "roomHint": "downstairs",
+        "manufacturer" : "A-OK",
+        "model": "AM43"}
         ]
 
 def default_devices():
     for d in devices:
-        device = Device.query.filter_by(device_id = d['id']).first()
+        device = Device.query.filter_by(id = d['id']).first()
         if device is None:
             device = Device()
             db.session.add(device)
-        device.update_from_syncdict(d)
+        device.update(d)
     db.session.commit()

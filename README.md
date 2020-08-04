@@ -1,3 +1,4 @@
+
 # Google Actions To Home MQTT Connector
 
 ## Description
@@ -66,3 +67,22 @@ Run a `docker-compose build` followed by `docker-compose up -d` to run and regis
 To configure the devices after starting the service navigate to `/admin` in your browser and edit the database there. 
 
 Edits will persist. Delete `data/db.sqlite` and run `docker-compose restart` to reset the device list.
+
+## Supported Device Types
+Currently this supports:
+
+ - Tasmota devices, specifically the Aoyocr U2S flashed with Tasmota 8 as a light switch, using [tuya convert](https://github.com/ct-Open-Source/tuya-convert) and setting up with the U2S template (https://templates.blakadder.com/aoycocr_U2S.html)
+ - AM43 blind controller, bridged using the [AM43 MQTT bridge](https://github.com/sjg10/am43-blind-controller-mqtt)
+
+Further devices need to be added to  implement `ConcreteDevice` and then be added to`SUPPORTED_DEVICES` in `website/devices/factory.py`
+
+## TODO
+
+ - Ensure the blind controller is fully working (i.e. has all required traits)
+ - Have the execute function of devices return a filled in status dictionary, not just a boolean.
+ - Add a battery trait to the blind controller
+ - Add a power monitor trait to the U2S devices
+ - Have the manufacturer/model replaced by a separate DeviceType model with a relationship to Device. The model should be filled in by `website/devices/factory.py` at boot
+ - Look in to further devices (e.g. an RS232 control of a BenQ projector via an ESP8266 as a TV device)
+
+
