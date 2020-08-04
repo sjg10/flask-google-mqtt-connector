@@ -2,7 +2,7 @@ from flask import render_template, redirect, flash
 from wtforms.form import Form
 from wtforms.fields import *
 from wtforms_alchemy import ModelForm
-from .models import db, Device
+from .models import db, Device, DBArray
 
 class DeviceForm(ModelForm):
     class Meta:
@@ -18,36 +18,32 @@ class MultiDict(dict):
     def getlist(self, key):
         return [self[key]]
 
-
 def commit(request):
     idd = request.form["commitbtn"].split("Commit ")[-1]
     print("com", idd, flush=True)
-    try:
-        if idd == "NEW":
-            form = DeviceForm(request.form)
-            if form.validate():
-                device=Device(**form.data)
-                db.session.add(device)
+    if idd == "NEW":
+        form = DeviceForm(request.form)
+        if form.validate():
+            device=Device(**form.data)
+            db.session.add(device)
+            db.session.commit()
+            return None
+        else:
+            return str(form.errors)
+    else:
+        device = Device.query.get(idd)
+        if device is None:
+            return "Device " + str(idd) +" to be updated not found"
+        else:
+            form = DeviceForm(request.form, obj=device)
+            form.populate_obj(device)
+            if form.validate(): 
+                for key, value in form.data.items():
+                    setattr(device, key, value)
                 db.session.commit()
                 return None
             else:
                 return str(form.errors)
-        else:
-            device = Device.query.get(idd)
-            if device is None:
-                return "Device " + str(idd) +" to be updated not found"
-            else:
-                form = DeviceForm(request.form, obj=device)
-                form.populate_obj(device)
-                if form.validate(): 
-                    for key, value in form.data.items():
-                        setattr(device, key, value)
-                    db.session.commit()
-                    return None
-                else:
-                    return str(form.errors)
-    except e:
-        return str(e)
 
 
 
@@ -80,7 +76,12 @@ def admin_render(request):
         else:
             return redirect('/admin')
     for member in db.session.query(Device):
-        device = DeviceForm(MultiDict(member.__dict__))
+        md = member.__dict__
+        # Convert arrays to newline arrays
+        for col, content in md.items():
+            if isinstance(Device.get_col_type(col), DBArray):
+                md[col] = "\n".join(content)
+        device = DeviceForm(MultiDict(md))
         device.id = member.id
         devicesform.append(device)
     emptyRow = DeviceForm()

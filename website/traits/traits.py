@@ -11,10 +11,10 @@ def execute(action, device, parameters):
     if action in ACTION_MAP:
         return ACTION_MAP[action].execute(device, parameters) # TODO: allow for more than one action per trait
     else:
-        raise NotImplementedError()
+        raise NotImplementedError("Unrecognised action ", str(action), "for devices", str(devices))
 
 def query(trait, devices):
     if trait in TRAIT_MAP:
         return TRAIT_MAP[trait].query(devices)
     else:
-        raise NotImplementedError()
+        raise NotImplementedError("Unrecognised trait ", str(trait), "for devices", str(devices))

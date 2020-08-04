@@ -8,6 +8,18 @@ from authlib.integrations.sqla_oauth2 import (
 
 db = SQLAlchemy()
 
+class DBArray(db.TypeDecorator):
+    impl = db.Text
+
+    def process_bind_param(self, value, dialect):
+        # Accept input as \n seperated string or if not as iterable
+        if isinstance(value, str):
+            return value
+        else:
+            return "\n".join(value)
+
+    def process_result_value(self, value, dialect):
+        return value.split("\n")
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -59,10 +71,9 @@ class Device(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     device_id = db.Column(db.String(50), unique=True, default="tasmotaX", nullable=False)
     device_type = db.Column(db.String(50), nullable=False, default="ActionDeviceType")
-    traits = db.Column(db.JSON, nullable=False, default=["ActionTraits","seperated","as json_array"])
+    traits = db.Column(DBArray, nullable=False, default="ActionTraits\nseperated\nas newlines")
     name = db.Column(db.String(50), unique=True, nullable=False, default="human name")
-    nicknames = db.Column(db.JSON, default=["nicknames","seperated","as ", "json_array"])
-    attributes = db.Column(db.JSON, default={"json": ["defining", "custom attributes"]})
+    nicknames = db.Column(DBArray, nullable=False, default="nicknames\nseperated\nas newlines")
     willReportState = db.Column(db.Boolean, default=False)
     roomHint = db.Column(db.String(50),nullable=False, default="human readable room")
     def syncdict(self):
@@ -73,8 +84,6 @@ class Device(db.Model):
         out["name"] = {"name": self.name, "nicknames" : self.nicknames}
         out["willReportState"] = self.willReportState
         out["roomHint"] = self.roomHint
-        if self.attributes:
-            out["attributes"] = self.attributes
         return out
     def update_from_syncdict(self, d):
         self.device_id = d["id"]
@@ -84,8 +93,15 @@ class Device(db.Model):
         self.nicknames = d["name"]["nicknames"]
         self.willReportState = d["willReportState"]
         self.roomHint = d["roomHint"]
-        if "attributes" in d:
-            self.attributes = d["attributes"]
+    @classmethod
+    def get_col_type(cls, col):
+        if hasattr(cls, col):
+            return getattr(cls, col).type
+        else:
+            return None
+        
+
+
 
 #Example devices loaded in at boot
 devices = [
