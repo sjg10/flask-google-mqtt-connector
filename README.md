@@ -82,7 +82,6 @@ Further devices need to be added to  implement `ConcreteDevice` and then be adde
  - Have the execute function of devices return a filled in status dictionary, not just a boolean.
  - Add a battery trait to the blind controller
  - Add a power monitor trait to the U2S devices
- - Have the manufacturer/model replaced by a separate DeviceType model with a relationship to Device. The model should be filled in by `website/devices/factory.py` at boot
  - Look in to further devices (e.g. an RS232 control of a BenQ projector via an ESP8266 as a TV device)
 
 

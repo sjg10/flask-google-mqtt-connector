@@ -36,15 +36,15 @@ class ConcreteDevice(ABC):
     def __init__(self, db_device):
         self.id = db_device.id
         self.db_device = db_device
-    @classmethod
-    def matches_device_info(cls, manufacturer, model):
-        return cls.manufacturer == manufacturer and cls.model == model
+
     @abstractmethod
     def execute(self, action, parameters):
         pass
+
     @abstractmethod
     def query(self):
         pass
+
     @abstractmethod
     def sync(self):
         pass

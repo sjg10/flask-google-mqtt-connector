@@ -5,6 +5,7 @@ from authlib.integrations.sqla_oauth2 import (
     OAuth2AuthorizationCodeMixin,
     OAuth2TokenMixin,
 )
+from .devices import factory as devicefactory
 
 db = SQLAlchemy()
 
@@ -17,9 +18,6 @@ class DBArray(db.TypeDecorator):
             return value
         else:
             return "\n".join(value)
-
-    def process_result_value(self, value, dialect):
-        return value.split("\n")
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -67,20 +65,32 @@ class OAuth2Token(db.Model, OAuth2TokenMixin):
         expires_at = self.issued_at + self.expires_in * 2
         return expires_at >= time.time()
 
+class DeviceType(db.Model):
+    __tablename__ = "devicetype"
+    id = db.Column(db.Integer, primary_key=True)
+    classname = db.Column(db.String(50), unique=True, default="ConcreteDevice", nullable=False)
+    devices = db.relationship('Device')
+    @classmethod
+    def id_from_name(cls, classname):
+        device_type = cls.query.filter_by(classname = classname).first()
+        if device_type:
+            return device_type.id
+        else:
+            return None
+
+
 class Device(db.Model):
     keyid = db.Column(db.Integer, primary_key=True)
     id = db.Column(db.String(50), unique=True, default="tasmotaX", nullable=False)
     name = db.Column(db.String(50), unique=True, nullable=False, default="human name")
     nicknames = db.Column(DBArray, nullable=False, default="nicknames\nseperated\nas newlines")
     roomHint = db.Column(db.String(50),nullable=False, default="human readable room")
-    manufacturer = db.Column(db.String(50), nullable=False, default="manufacturer")
-    model = db.Column(db.String(50), nullable=False, default="model")
+    device_type = db.Column(db.String(50), db.ForeignKey('devicetype.classname'), nullable=False)
     def generate_common_sync(self):
         out = {}
         out["id"] = self.id
-        out["name"] = {"name": self.name, "nicknames" : self.nicknames}
+        out["name"] = {"name": self.name, "nicknames" : self.nicknames.split("\n") if self.nicknames else []}
         out["roomHint"] = self.roomHint
-        out["deviceInfo"] = {"manufacturer": self.manufacturer, "model": self.model}
         return out
     def update(self, d):
         for item, content in d.items():
@@ -98,41 +108,37 @@ devices = [
         "name" : "stair lights",
         "nicknames" : ["stair light", "stairs light", "stairs lights"],
         "roomHint": "downstairs",
-        "manufacturer" : "tasmota",
-        "model": "u2s"},
+        "device_type": "TasmotaU2S"},
         {"id" : "tasmota2", 
         "name" : "table light",
         "nicknames" : ["table lights"],
         "roomHint": "downstairs",
-        "manufacturer" : "tasmota",
-        "model": "u2s"},
+        "device_type": "TasmotaU2S"},
         {"id" : "tasmota3", 
         "name" : "sofa light",
         "nicknames" : ["sofa lights", "corner light", "corner lights"],
         "roomHint": "downstairs",
-        "manufacturer" : "tasmota",
-        "model": "u2s"},
+        "device_type": "TasmotaU2S"},
         {"id" : "tasmota4", 
         "name" : "door light",
         "nicknames" : ["door lights"],
         "roomHint": "downstairs",
-        "manufacturer" : "tasmota",
-        "model": "u2s"},
+        "device_type": "TasmotaU2S"},
         {"id" : "tasmota6", 
         "name" : "cabin light",
         "nicknames" : ["cabin lights", "cabin lamp"],
         "roomHint": "cabin",
-        "manufacturer" : "tasmota",
-        "model": "u2s"},
+        "device_type": "TasmotaU2S"},
         {"id" : "blind1", 
         "name" : "blind",
         "nicknames" : ["blinds"],
         "roomHint": "downstairs",
-        "manufacturer" : "A-OK",
-        "model": "AM43"}
+        "device_type": "AM43"},
         ]
 
 def default_devices():
+    devicefactory.populate(db, DeviceType) # populate devicetypes
+    #Then populate devices
     for d in devices:
         device = Device.query.filter_by(id = d['id']).first()
         if device is None:

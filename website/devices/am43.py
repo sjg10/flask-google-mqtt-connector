@@ -3,8 +3,6 @@ import paho.mqtt.publish as publish
 from .common import mqtt_resp, ConcreteDevice
 
 class AM43(ConcreteDevice):
-    manufacturer = "A-OK"
-    model = "AM43"
     def __init__(self, db_device):
         super().__init__(db_device)
         self.trait_map = {"action.devices.traits.OpenClose": self.query_openclose}#TODO: other required traits (mode)+battery trait

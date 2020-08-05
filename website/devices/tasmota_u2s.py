@@ -3,8 +3,6 @@ import paho.mqtt.publish as publish
 from .common import mqtt_resp, ConcreteDevice
 
 class TasmotaU2S(ConcreteDevice):
-    manufacturer = "tasmota"
-    model = "u2s"
     def __init__(self, db_device):
         super().__init__(db_device) 
         self.trait_map = {"action.devices.traits.OnOff": self.query_onoff}
