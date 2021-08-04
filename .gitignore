@@ -1,4 +1,5 @@
 web-variables.env
+docker-compose.override.yml
 *.pyc
 *.sqlite
 **/pwfile

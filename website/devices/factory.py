@@ -1,8 +1,9 @@
 from .tasmota_u2s import TasmotaU2S
 from .am43 import AM43
+from .benq import TH585
 
 
-SUPPORTED_DEVICES=[TasmotaU2S, AM43]
+SUPPORTED_DEVICES=[TasmotaU2S, AM43, TH585]
 
 def DeviceFactory(device):
     if device:

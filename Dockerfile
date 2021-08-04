@@ -1,5 +1,8 @@
 FROM python:3
 
+RUN pip3 install -U pip
+RUN apt-get update && apt-get install -y rustc
+
 # Grab requirements and install them
 WORKDIR /app
 COPY ./requirements.txt /app/requirements.txt

@@ -12,7 +12,7 @@ from .intents import api_delegate
 from .admin import admin_render
 
 basic_auth = BasicAuth()
-bp = Blueprint(__name__, 'home')
+bp = Blueprint('routes', 'home')
 
 @bp.route('/oauth/authorize', methods=['GET', 'POST'])
 def authorize():

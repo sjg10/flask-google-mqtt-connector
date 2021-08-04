@@ -49,6 +49,8 @@ Download the repo and copy web-variables.env.eg to web-variables.env and fill in
 |ADMIN_PASSWORD|A password for a new account to edit devices|
 
 
+In addition any serial devices need to be passed to docker. Copy `docker-compose.override.yml.eg` to `docker-compose.override.yml` and add any used `"/dev/tty*"` devices as bullet points to devices.
+
 ### MQTT Setup
 
 If you already have an MQTT server, simply remove the broker service from the docker-compose file.
@@ -73,7 +75,7 @@ Currently this supports:
 
  - Tasmota devices, specifically the Aoyocr U2S flashed with Tasmota 8 as a light switch, using [tuya convert](https://github.com/ct-Open-Source/tuya-convert) and setting up with the U2S template (https://templates.blakadder.com/aoycocr_U2S.html)
  - AM43 blind controller, bridged using the [AM43 MQTT bridge](https://github.com/sjg10/am43-blind-controller-mqtt)
-
+ - BENQ TH585 Projector (via RS232) 
 Further devices need to be added to  implement `ConcreteDevice` and then be added to`SUPPORTED_DEVICES` in `website/devices/factory.py`
 
 ## TODO
@@ -82,6 +84,6 @@ Further devices need to be added to  implement `ConcreteDevice` and then be adde
  - Have the execute function of devices return a filled in status dictionary, not just a boolean.
  - Add a battery trait to the blind controller
  - Add a power monitor trait to the U2S devices
- - Look in to further devices (e.g. an RS232 control of a BenQ projector via an ESP8266 as a TV device)
+ - Add Report State
 
 
