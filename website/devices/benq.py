@@ -51,7 +51,7 @@ class TH585(ConcreteDevice):
         self.th585=TH585LL(self.id)# TODO: add close to destructor #TODO: handle failure
         self.trait_map = {"action.devices.traits.OnOff": self.query_onoff, "action.devices.traits.InputSelector": self.query_getinput, "action.devices.traits.Volume": self.query_volume, "action.devices.traits.AppSelector": None, "action.devices.traits.MediaState": None, "action.devices.traits.TransportControl": None}
         self.attribute_map = [self.attributes_setinput, self.attributes_volume,self.attributes_applications, self.attributes_transport]
-        self.action_map = {"action.devices.commands.OnOff": self.execute_onoff, "action.devices.commands.setInput": self.execute_setinput, "action.devices.commands.mute": self.execute_mute, "action.devices.commands.setVolume": self.execute_setvolume}
+        self.action_map = {"action.devices.commands.OnOff": self.execute_onoff, "action.devices.commands.SetInput": self.execute_setinput, "action.devices.commands.mute": self.execute_mute, "action.devices.commands.setVolume": self.execute_setvolume}
 
     def query(self):
         out = {}
@@ -110,10 +110,10 @@ class TH585(ConcreteDevice):
             if res is not None:
                 return {"currentInput": res.decode('utf-8')}
             else:
-                return {"currentInput": ""}
+                return {"currentInput": self.attributes_setinput()["availableInputs"][0]["key"]}
         return None #TODO: handle failure
 
-    def execute_setinput(params): #action.devices.commands.setInput
+    def execute_setinput(self, params): #action.devices.commands.setInput
         res = self.th585.set_source(params["newInput"])
         return res[0] #TODO: handle failure
         """
