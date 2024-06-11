@@ -1,7 +1,8 @@
-FROM python:3
+FROM python:3.10-alpine
+
+RUN apk add --update cargo rust py-cffi openssl-dev libffi-dev
 
 RUN pip3 install -U pip
-RUN apt-get update && apt-get install -y rustc
 
 # Grab requirements and install them
 WORKDIR /app

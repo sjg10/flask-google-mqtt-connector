@@ -81,8 +81,9 @@ def add_default_client(app):
 
 def setup_app(app):
     # Create tables if they do not exist already
-    @app.before_first_request
+    @app.before_request
     def create_tables():
+        app.before_request_funcs[None].remove(create_tables)
         db.create_all()
         add_default_client(app)
         default_devices()
